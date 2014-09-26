@@ -9,7 +9,6 @@ from DistanceAlgorithms import *
 from Dataset import dataset as dset
 
 
-
 class UserRecommender:
     
     _similarUserDictionary = {}
@@ -21,14 +20,17 @@ class UserRecommender:
 #        self.getUserSimilarity()
 #        print "Recommender Initialised!"
     
-    def __init__(self,filepath):
+    def __init__(self,filepath,similarityAlgo = None):
         print "Formatting the dataset.."
         self.createDataset(filepath)
         print "Dataset Formatted! Creating Dictionary.."
-        self.getUserSimilarity()
+        if similarityAlgo != None:
+            self.getUserSimilarity(similarityAlgo)
+        else:
+            self.getUserSimilarity(PearsonCorrelation())
         print "Recommender Initialised!"
            
-    def getTopMatches(self,person,n = 3,similarityAlgo = PearsonCorrelation()):
+    def getTopMatches(self,person,similarityAlgo,n=3):
         scores=[]
         users = self._dataset.keys()
         if person in users:
@@ -42,14 +44,14 @@ class UserRecommender:
         scores.reverse()
         return scores[0:n]
     
-    def getUserSimilarity(self):
+    def getUserSimilarity(self,similarityAlgo):
         
         users = self._dataset.keys()
         topMatches = {}
         topMatchesList = []
         
         for user in users:
-            topMatchesList = self.getTopMatches(user)
+            topMatchesList = self.getTopMatches(user,similarityAlgo)
             for l in topMatchesList:
                 topMatches[l[1]]=l[0]
             self._similarUserDictionary[user]=topMatches
@@ -57,7 +59,7 @@ class UserRecommender:
         #print self._similarUserDictionary
     
     def recommend(self,user):
-        
+        print "Recommending for : " + user
         similaritySum = {}
         simRatingProduct = {}
         similarUsers = {}
@@ -77,18 +79,18 @@ class UserRecommender:
                     simRatingProduct[item] += (similarUsers[person]*self._dataset[person][item])
         
         for item in simRatingProduct:
-            ratings[item] = simRatingProduct[item]/similaritySum[item]
+            itemRating = simRatingProduct[item]/similaritySum[item]
+            if itemRating >= 4.0:
+                ratings[item] = itemRating            
         
-        print ratings 
+        return ratings
+         
     
     def createDataset(self,filepath):
         
         dataFile = open(filepath,"r")
-        count = 0
-        
-        for line in dataFile:
-            if (count % 5000) == 0:
-                print count
+                
+        for line in dataFile:            
             data = line.split("\t")
             if data[0] in self._dataset.keys():
                 if data[1] not in self._dataset[data[0]].keys():
@@ -97,12 +99,12 @@ class UserRecommender:
                 rating = {}
                 rating[data[1]] = int(data[2])
                 self._dataset[data[0]] = rating
-            count += 1
+            
     
     
 if __name__ == "__main__":
     r = UserRecommender("Resources/ml-100k/u.data")
-    r.recommend('100')
+    print r.recommend('100')
             
         
         
